@@ -6,8 +6,12 @@ from VisualEmbedding import resnet50_based
 
 # TokenAndPositionEmbedding
 class LanguageEmbedding(tf.keras.layers.Layer):
-    def __init__(self, max_len, vocab_size, embedding_dim, name="Language_Embedding"):
-        super(LanguageEmbedding, self).__init__(name=name)
+    def __init__(self, max_len, vocab_size, embedding_dim, name="Language_Embedding", **kwargs):
+        super(LanguageEmbedding, self).__init__(name=name, **kwargs)
+        self.max_len = max_len
+        self.vocab_size = vocab_size
+        self.embedding_dim = embedding_dim
+
         self.token_emb = tf.keras.layers.Embedding(vocab_size, embedding_dim)
         self.pos_emb = tf.keras.layers.Embedding(max_len, embedding_dim)
         self.seg_emb = tf.keras.layers.Embedding(2, embedding_dim)
@@ -22,11 +26,26 @@ class LanguageEmbedding(tf.keras.layers.Layer):
         lang_seg_emb = self.seg_emb(seg)
         return lang_enc_emb + lang_pos_emb + lang_seg_emb
 
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'max_len': self.max_len,
+            'vocab_size': self.vocab_size,
+            'embedding_dim': self.embedding_dim,
+            "name": self.name
+        })
+        return config
+
+
 
 # TokenAndPositionEmbedding
 class VisualEmbedding(tf.keras.layers.Layer):
-    def __init__(self, sig_len, hid_dims, embedding_dim, name="Visual_Embedding"):
-        super(VisualEmbedding, self).__init__(name=name)
+    def __init__(self, sig_len, hid_dims, embedding_dim, name="Visual_Embedding", **kwargs):
+        super(VisualEmbedding, self).__init__(name=name, **kwargs)
+        self.sig_len = sig_len
+        self.hid_dims = hid_dims
+        self.embedding_dim = embedding_dim
+
         self.pos_emb = tf.keras.layers.Embedding(sig_len+2, hid_dims)
         self.seg_emb = tf.keras.layers.Embedding(2, hid_dims)
 
@@ -51,6 +70,16 @@ class VisualEmbedding(tf.keras.layers.Layer):
         vis_emb = vis_emb + vis_pos_emb + vis_seg_emb
         vis_emb = self.projection_emb(vis_emb)
         return vis_emb
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'sig_len': self.sig_len,
+            'hid_dims': self.hid_dims,
+            'embedding_dim': self.embedding_dim,
+            "name": self.name
+        })
+        return config
 
 
 def create_padding_mask(x):

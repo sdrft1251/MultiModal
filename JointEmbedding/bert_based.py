@@ -3,8 +3,8 @@ import numpy as np
 
 
 class MultiHeadAttention(tf.keras.layers.Layer):
-    def __init__(self, embedding_dim, num_heads=8, name="Multi_Head_Attention"):
-        super(MultiHeadAttention, self).__init__(name=name)
+    def __init__(self, embedding_dim, num_heads=8, name="Multi_Head_Attention", **kwargs):
+        super(MultiHeadAttention, self).__init__(name=name, **kwargs)
         self.embedding_dim = embedding_dim
         self.num_heads = num_heads
 
@@ -58,10 +58,24 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         outputs = self.dense(concat_attention)
         return outputs, scaled_attention_weights
 
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'embedding_dim': self.embedding_dim,
+            'num_heads': self.num_heads,
+            "name": self.name
+        })
+        return config
+
 
 class TransformerBlock(tf.keras.layers.Layer):
-    def __init__(self, embedding_dim, num_heads, dff, rate=0.1, name="Transformer_Block"):
-        super(TransformerBlock, self).__init__(name=name)
+    def __init__(self, embedding_dim, num_heads, dff, rate=0.1, name="Transformer_Block", **kwargs):
+        super(TransformerBlock, self).__init__(name=name, **kwargs)
+        self.embedding_dim = embedding_dim
+        self.num_heads = num_heads
+        self.dff = dff
+        self.rate = rate
+
         self.att = MultiHeadAttention(embedding_dim, num_heads, f"{name}_MultiHeadPart")
         self.ffn = tf.keras.Sequential(
             [tf.keras.layers.Dense(dff, activation="relu"),
@@ -80,10 +94,24 @@ class TransformerBlock(tf.keras.layers.Layer):
         ffn_output = self.dropout2(ffn_output, training=training)
         return self.layernorm2(out1 + ffn_output), attn_prob
 
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'embedding_dim': self.embedding_dim,
+            'num_heads': self.num_heads,
+            'dff': self.dff,
+            'rate': self.rate,
+            "name": self.name
+        })
+        return config
+
 
 class JointEmbeddingLayer(tf.keras.layers.Layer):
-    def __init__(self, dims, dff, num_heads, num_layers, lang_len, name="Joint_Embedding_Layer"):
-        super(JointEmbeddingLayer, self).__init__(name=name)
+    def __init__(self, dims, dff, num_heads, num_layers, lang_len, name="Joint_Embedding_Layer", **kwargs):
+        super(JointEmbeddingLayer, self).__init__(name=name, **kwargs)
+        self.dims = dims
+        self.dff = dff
+        self.num_heads = num_heads
         self.num_layers = num_layers
         self.lang_len = lang_len
         self.transformer_blocks = [
@@ -106,6 +134,18 @@ class JointEmbeddingLayer(tf.keras.layers.Layer):
 
         outputs_attn_prob = tf.concat(attn_probs, axis=1)
         return outputs[:,-self.lang_len:], outputs[:,0], outputs_attn_prob
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'dims': self.dims,
+            'dff': self.dff,
+            'num_heads': self.num_heads,
+            'num_layers': self.num_layers,
+            'lang_len': self.lang_len,
+            "name": self.name
+        })
+        return config
 
 
 def get_model(max_len, dims, num_heads, dff, num_layers, name="Joint_Embedding"):

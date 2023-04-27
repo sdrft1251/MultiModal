@@ -2,8 +2,11 @@ import tensorflow as tf
 
 
 class BottleNeck(tf.keras.layers.Layer):
-    def __init__(self, filter_num, stride=1):
-        super(BottleNeck, self).__init__()
+    def __init__(self, filter_num, stride=1, **kwargs):
+        super(BottleNeck, self).__init__(**kwargs)
+        self.filter_num = filter_num
+        self.stride = stride
+
         self.conv1 = tf.keras.layers.Conv1D(filters=filter_num, kernel_size=1, strides=1, padding='same')
         self.conv2 = tf.keras.layers.Conv1D(filters=filter_num, kernel_size=3, strides=stride, padding='same')
         self.conv3 = tf.keras.layers.Conv1D(filters=filter_num * 4, kernel_size=1, strides=1, padding='same')
@@ -13,10 +16,8 @@ class BottleNeck(tf.keras.layers.Layer):
     def get_config(self):
         config = super().get_config().copy()
         config.update({
-            'conv1': self.conv1,
-            'conv2': self.conv2,
-            'conv3': self.conv3,
-            'down_conv1': self.down_conv1
+            'filter_num': self.filter_num,
+            'stride': self.stride
         })
         return config
 
@@ -42,8 +43,14 @@ def make_bottleneck_layer(filter_num, blocks, name_end, stride=1):
 
 
 class VisualEncodingLayer(tf.keras.layers.Layer):
-    def __init__(self, num_layers, first_dims=64, filters=[64,128,256,512], blocks=[3,4,6,3], strides=[1,2,2,2], name="Visual_Encoding_Layer"):
-        super(VisualEncodingLayer, self).__init__(name=name)
+    def __init__(self, num_layers, first_dims=64, filters=[64,128,256,512], blocks=[3,4,6,3], strides=[1,2,2,2], name="Visual_Encoding_Layer", **kwargs):
+        super(VisualEncodingLayer, self).__init__(name=name, **kwargs)
+        self.num_layers = num_layers
+        self.first_dims = first_dims
+        self.filters = filters
+        self.blocks = blocks
+        self.strides = strides
+
         self.interp_layer = tf.keras.Sequential(
             [
                 tf.keras.layers.Conv1D(first_dims, kernel_size=7, strides=2, padding='same'),
@@ -60,6 +67,17 @@ class VisualEncodingLayer(tf.keras.layers.Layer):
         outputs = self.interp_layer(inputs)
         outputs = self.res_blocks(outputs)
         return outputs
+
+    def get_config(self):
+        config = super().get_config().copy()
+        config.update({
+            'num_layers': self.num_layers,
+            'first_dims': self.first_dims,
+            'filters': self.filters,
+            'blocks': self.blocks,
+            'strides': self.strides,
+        })
+        return config
 
 
 def get_model(time_len, dims, first_dims=64, filters=[64,128,256,512], blocks=[3,4,6,3], strides=[1,2,2,2], name="VisEncoderResnet50Based"):
